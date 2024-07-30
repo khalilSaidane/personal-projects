@@ -1,0 +1,39 @@
+image: docker:19.03.13
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_IMAGE_NAME: khalilsaidane/cart
+  DOCKER_IMAGE_TAG: 0.1.0-SNAPSHOT
+
+before_script:
+  - echo "Logging in to Docker Hub..."
+  - docker logout
+  - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}
+
+build:
+  stage: build
+  script:
+    - echo "Building Docker image..."
+    - docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
+    - docker save -o docker-image.tar ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+  artifacts:
+    paths:
+      - docker-image.tar
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Pushing Docker image to Docker Hub..."
+    - docker load -i docker-image.tar
+    - docker push ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+  dependencies:
+    - build
+  only:
+    - develop
+    - /^v\d+\.\d+\.\d+.*$/

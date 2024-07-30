@@ -1,0 +1,72 @@
+version: '2'
+services:
+
+  db:
+    image: mariadb
+    container_name: db
+    command: --init-file /data/application/init.sql
+    volumes:
+      - ./db:/var/lib/mysql
+      - $PWD/init.sql:/data/application/init.sql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: catalog
+    expose:
+      - "3306"
+
+  rabbitmq:
+     image: rabbitmq:3-management-alpine
+     ports:
+       - "5672:5672"
+       - "15672:15672"
+
+  elasticsearch:
+    container_name: es-container
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+    environment:
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+    ports:
+      - "9200:9200"
+  kibana:
+    container_name: kb-container
+    image: docker.elastic.co/kibana/kibana:7.11.0
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es-container:9200
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+
+  keycloak:
+    image:  quay.io/keycloak/keycloak:21.1.1
+    container_name: keycloak
+    environment:
+      DB_VENDOR: mariadb
+      DB_ADDR: db
+      DB_DATABASE: keycloak
+      DB_USER: root
+      DB_PASSWORD: root
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command:
+      - start-dev
+    ports:
+      - "9990:8080"
+      - "9991:8443"
+    depends_on:
+      - db
+    volumes:
+      - .local/keycloak/:/opt/jboss/keycloak/standalone/data/
+
+  cart-job:
+    image: cart-job:0.0.1-SNAPSHOT
+    container_name: cart-job
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/cart
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+

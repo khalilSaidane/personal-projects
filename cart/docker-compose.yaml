@@ -1,0 +1,11 @@
+version: '2'
+services:
+
+  cart:
+    image: khalilsaidane/cart
+    container_name: cart
+    restart: always
+    environment:
+      DATABASE_URL: mysql+mysqlconnector://root:root@db:3306/cart
+    ports:
+      - "8000:8000"

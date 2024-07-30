@@ -1,0 +1,18 @@
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: maven:3.8.4-openjdk-17
+  script:
+    - mvn clean install
+
+deploy:
+  stage: deploy
+  image: maven:3.8.4-openjdk-17
+  script:
+    - mvn compile jib:build -Djib.to.auth.username=${CI_REGISTRY_USER} -Djib.to.auth.password=${CI_REGISTRY_PASSWORD}
+  only:
+    - develop
+    - /^v\d+\.\d+\.\d+.*$/
